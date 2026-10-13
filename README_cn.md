@@ -151,10 +151,15 @@ $$m_{\mathrm{cf}}(x_v)=m_0+y\sum_{f\notin S}w_f\widetilde\delta_{v,f}.$$
 ## ⚙️ 安装
 
 ```bash
+git clone https://github.com/UniqueMax2005/rss-redistribution.git
+cd rss-redistribution
+python -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
 ```
 
-`rss.py` 只依赖 NumPy。demo 另需 PyTorch、TransformerLens、SAE Lens 和 Matplotlib。
+`rss.py` 只依赖 NumPy，只用选择器时 `pip install numpy` 就够了。demo 另需 PyTorch、TransformerLens、SAE Lens 和 Matplotlib。下面的 demo 输出由 Python 3.12 和 [`requirements-lock.txt`](requirements-lock.txt) 里的版本得到，`pip install -r requirements-lock.txt` 会装上完全相同的版本。
+
+✅ **测试。** `python -m pytest` 检查论文依赖的性质，包括严格阈值、空支撑集记为不可用、Proposition 1 和 2、对尺度以及特征和变体顺序的不变性、输入检查，以及两份 README 快速上手的输出。每次 push 都由 GitHub Actions 自动运行。
 
 ---
 
@@ -183,6 +188,18 @@ print(support, direction, round(mean_rss, 2))
 ```bash
 python demo.py
 ```
+
+🧰 **用在自己的 SAE 上。** 为每个原始 prompt 写若干变体，保持请求不变，并让目标短语恰好出现一次。在与目标短语重叠的最后一个 token 处读取 SAE，做法同 [`demo.py`](demo.py) 里的 `sae_features`。在查看任何特征之前先把变体分成选择变体和留出变体，在前一组上选择，在后一组上检验选定方向。
+
+```python
+from rss import rss, held_out_rate
+
+# a0 的形状是 (n_features,)，a_sel 和 a_ho 的形状是 (n_variants, n_features)
+support, direction, mean_rss = rss(a_sel - a0)
+rate = held_out_rate(a_ho - a0, support, direction)   # 每个选中特征一个值
+```
+
+`held_out_rate` 就是论文 Equation 20 的留出响应率，也就是 Figure 4A 里的量。两个函数遇到 nan 或 inf、形状不对或参数超出范围时都会报错，不会返回一个看似正常的数字。
 
 ---
 
@@ -279,6 +296,26 @@ Prompts where context and wrappers move more: 24 / 24
 | [Figure&nbsp;S7](assets/figures/figS7.png) | Normalized MeanRSS and margin erosion on held out variants for each transformation, evaluated on the audited safety units. Transformation abbreviations as in Figure S2. Error bars show 95% bootstrap confidence intervals. | |
 | [Figure&nbsp;S8](assets/figures/figS8.png) | Effect of transformation strength on the audited safety units. A, margin erosion under three transformations rebuilt at four increasing intensity levels, with 95% bootstrap confidence intervals. B, MeanRSS for the same series, relative to the weakest level. | |
 | [Figure&nbsp;S9](assets/figures/figS9.png) | Augmentation guided by MeanRSS compared with uniform sampling. A, differences between the two sampling methods in clean, mean, and worst transformation AUROC, together with the reduction in harmful false negative rate under the worst transformation. Error bars show 95% bootstrap confidence intervals. B, harmful false negative rate averaged over the six transformations across five runs. Bars show the run mean and whiskers the observed range. | |
+
+<details>
+<summary>论文使用的 SAE</summary>
+
+取自论文 Table S3。27 个 SAE 都是公开的 checkpoint。
+
+| 模型 | 层 | SAE checkpoint | 宽度 | Hook | 架构与稀疏度 |
+|---|---|---|---:|---|---|
+| GPT-2 Small | 4, 6, 8, 10 | `GPT2-Small-SAEs-Reformatted` | 24,576 | `resid_pre` | ReLU，32×，L1 系数 $`8\times10^{-5}`$ |
+| Pythia-70M | 1, 3, 5 | `pythia-70m-deduped__res-sm` | 32,768 | `resid_post` | ReLU，standard，稀疏度未报告 |
+| Gemma 3 270M | 5, 9, 12, 15 | `gemma-scope-2-270m-pt` | 16,384 | `resid_post` | JumpReLU，第 5 层 $`L_0=18`$，其余为 20 |
+| Gemma 3 1B | 7, 13, 17, 22 | `gemma-scope-2-1b-pt` | 16,384 | `resid_post` | JumpReLU，第 7 层 $`L_0=18`$，其余为 20 |
+| Gemma 3 4B | 9, 17, 29 | `gemma-scope-2-4b-pt` | 65,536 | `resid_post` | JumpReLU，名义 $`L_0`$ 为 53、60、60 |
+| Mistral 7B | 8, 16, 24 | `mistral_7b_layer_L` | 65,536 | `resid_pre` | ReLU，16×，实测 $`L_0`$ 为 92、74、75 |
+| Llama 3.1 8B | 8, 16, 24 | `Llama3.1-L{8,16,24}R-8x` | 32,768 | `resid_post` | JumpReLU，8×，实测 $`L_0=50`$ |
+| Gemma 2 2B | 5, 12, 19 | `gemma-scope-2b-pt-res` `width_65k` | 65,536 | `resid_post` | JumpReLU，实测 $`L_0`$ 为 53、72、63 |
+
+demo 通过 SAE Lens 以 `gpt2-small-res-jb` 加载 GPT-2 Small 的 SAE，位置是 `blocks.L.hook_resid_pre`。
+
+</details>
 
 <details>
 <summary>展开全部图</summary>

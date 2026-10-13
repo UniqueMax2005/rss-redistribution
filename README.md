@@ -210,10 +210,19 @@ and errors reversed is the share of transformed probe errors corrected by restor
 ## ⚙️ Install
 
 ```bash
+git clone https://github.com/UniqueMax2005/rss-redistribution.git
+cd rss-redistribution
+python -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
 ```
 
-`rss.py` needs only NumPy. The demo also needs PyTorch, TransformerLens, SAE Lens and Matplotlib.
+`rss.py` needs only NumPy, so `pip install numpy` is enough for the selector. The demo also needs PyTorch, TransformerLens,
+SAE Lens and Matplotlib. The demo output below comes from Python 3.12 with the versions in
+[`requirements-lock.txt`](requirements-lock.txt), and `pip install -r requirements-lock.txt` installs exactly those.
+
+✅ **Tests.** `python -m pytest` checks the properties the paper relies on. They cover the strict threshold, an empty
+support that stays unavailable, Propositions 1 and 2, invariance to scale and to the order of features and variants,
+input checks and the Quickstart output of both READMEs. GitHub Actions runs them on every push.
 
 ---
 
@@ -243,6 +252,23 @@ every time but flips its direction, so it is dropped.
 ```bash
 python demo.py
 ```
+
+🧰 **Your own SAE.** Write variants of each clean prompt that keep the request and contain the target phrase exactly
+once. Read the SAE at the last token that overlaps the target phrase, as `sae_features` in [`demo.py`](demo.py) does.
+Split the variants into selection and held out variants before looking at any feature, select on the first set and check
+the selected directions on the second.
+
+```python
+from rss import rss, held_out_rate
+
+# a0 has shape (n_features,), a_sel and a_ho have shape (n_variants, n_features)
+support, direction, mean_rss = rss(a_sel - a0)
+rate = held_out_rate(a_ho - a0, support, direction)   # one value per selected feature
+```
+
+`held_out_rate` is the held out response rate of Equation 20 in the paper, the quantity in Figure 4A. Both functions
+raise an error for nan or inf values, a wrong shape or a parameter outside its range, so a bad input never returns a
+plausible number.
 
 ---
 
@@ -359,6 +385,26 @@ Captions are taken from the paper.
 | [Figure&nbsp;S7](assets/figures/figS7.png) | Normalized MeanRSS and margin erosion on held out variants for each transformation, evaluated on the audited safety units. Transformation abbreviations as in Figure S2. Error bars show 95% bootstrap confidence intervals. | |
 | [Figure&nbsp;S8](assets/figures/figS8.png) | Effect of transformation strength on the audited safety units. A, margin erosion under three transformations rebuilt at four increasing intensity levels, with 95% bootstrap confidence intervals. B, MeanRSS for the same series, relative to the weakest level. | |
 | [Figure&nbsp;S9](assets/figures/figS9.png) | Augmentation guided by MeanRSS compared with uniform sampling. A, differences between the two sampling methods in clean, mean, and worst transformation AUROC, together with the reduction in harmful false negative rate under the worst transformation. Error bars show 95% bootstrap confidence intervals. B, harmful false negative rate averaged over the six transformations across five runs. Bars show the run mean and whiskers the observed range. | |
+
+<details>
+<summary>SAEs used in the paper</summary>
+
+From Table S3 of the paper. All 27 SAEs are public checkpoints.
+
+| Model | Layers | SAE checkpoint | Width | Hook | Architecture and sparsity |
+|---|---|---|---:|---|---|
+| GPT-2 Small | 4, 6, 8, 10 | `GPT2-Small-SAEs-Reformatted` | 24,576 | `resid_pre` | ReLU, 32×, L1 coefficient $`8\times10^{-5}`$ |
+| Pythia-70M | 1, 3, 5 | `pythia-70m-deduped__res-sm` | 32,768 | `resid_post` | ReLU, standard, sparsity not reported |
+| Gemma 3 270M | 5, 9, 12, 15 | `gemma-scope-2-270m-pt` | 16,384 | `resid_post` | JumpReLU, $`L_0=18`$ at layer 5 and 20 elsewhere |
+| Gemma 3 1B | 7, 13, 17, 22 | `gemma-scope-2-1b-pt` | 16,384 | `resid_post` | JumpReLU, $`L_0=18`$ at layer 7 and 20 elsewhere |
+| Gemma 3 4B | 9, 17, 29 | `gemma-scope-2-4b-pt` | 65,536 | `resid_post` | JumpReLU, nominal $`L_0`$ of 53, 60 and 60 |
+| Mistral 7B | 8, 16, 24 | `mistral_7b_layer_L` | 65,536 | `resid_pre` | ReLU, 16×, measured $`L_0`$ of 92, 74 and 75 |
+| Llama 3.1 8B | 8, 16, 24 | `Llama3.1-L{8,16,24}R-8x` | 32,768 | `resid_post` | JumpReLU, 8×, measured $`L_0=50`$ |
+| Gemma 2 2B | 5, 12, 19 | `gemma-scope-2b-pt-res` `width_65k` | 65,536 | `resid_post` | JumpReLU, measured $`L_0`$ of 53, 72 and 63 |
+
+The demo loads the GPT-2 Small SAEs through SAE Lens as `gpt2-small-res-jb` at `blocks.L.hook_resid_pre`.
+
+</details>
 
 <details>
 <summary>Show all figures</summary>
