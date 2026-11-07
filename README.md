@@ -13,7 +13,7 @@ In two frozen safety readouts, combining RSS support erosion with the clean marg
 0.935 and 0.958 with median supports of 20 and 19 features, compared with 0.965 and 0.964 using full erosion.
 
 <p align="center">
-  <b>📄 arXiv paper coming soon</b> &nbsp; | &nbsp;
+  <a href="https://arxiv.org/abs/2610.21240"><b>📄 Paper (arXiv)</b></a> &nbsp; | &nbsp;
   <a href="https://uniquemax2005.github.io/rss-redistribution/"><b>🎞️ 5-minute tutorial</b></a> &nbsp; | &nbsp;
   <a href="#-demo"><b>🧪 Demo</b></a>
 </p>
@@ -45,7 +45,7 @@ works offline.
 ## ✨ Highlights
 
 - 🔁 **A reproducible profile.** In all 27 SAEs, context and wrapper transformations move the representation more than
-  local edits. The normalized gap is 0.874, and the context and wrapper mean is larger for all 1,000 prompts.
+  local edits. The normalized gap is 0.853, and the context and wrapper mean is larger for all 1,000 prompts.
 - 🎯 **A simple selection rule.** RSS keeps the largest feature changes that respond in at least four of five variants
   and point the same way in at least 80% of them.
 - 🧭 **Directions persist.** On held out variants, RSS features respond in their selected direction at a rate of 0.952,
@@ -280,12 +280,18 @@ Normalized MeanRSS $`\widetilde R_g`$ averaged over the 27 SAEs with equal weigh
 
 | Irrelevant context | Distractor context | Metalinguistic wrapper | Format wrapper | Punctuation noise | Typed lexical substitution |
 |:---:|:---:|:---:|:---:|:---:|:---:|
-| **1.466** | **1.341** | **1.199** | **1.159** | 0.525 | 0.309 |
+| **1.530** | **1.393** | **1.235** | **0.980** | 0.544 | 0.319 |
 
-The context and wrapper mean exceeds the local edit mean in all 27 SAEs, with an average difference of 0.874 and a 95%
-interval of 0.867 to 0.881. It does so for all 1,000 prompts, and every context or wrapper setting exceeds both local
-edits for 997. Across four intensity levels, the median prompt level Spearman correlation between intensity and MeanRSS
+The context and wrapper mean exceeds the local edit mean in all 27 SAEs, with an average difference of 0.853 and a 95%
+interval of 0.846 to 0.860. It does so for all 1,000 prompts, and every context or wrapper setting exceeds both local
+edits for 988. Across four intensity levels, the median prompt level Spearman correlation between intensity and MeanRSS
 is 0.95 for punctuation edits, 0.74 for irrelevant context and 0.50 for the format wrapper.
+
+> [!NOTE]
+> These Figure 2 numbers use corrected target alignment. In two format wrapper operators, the evaluated token had
+> landed on a trailing label instead of the last token of the preserved prompt span; it now always lies in the
+> preserved span. arXiv v1 reports the earlier values (difference 0.874 [0.867, 0.881], 997 of 1,000 prompts). The
+> ordering of the six transformations and the result in all 27 SAEs are unchanged.
 
 #### 🧭 Figure 3. Response contrast on variants excluded from feature selection
 
@@ -359,8 +365,8 @@ Prompts where context and wrappers move more: 24 / 24
 
 ✅ The demo shows the same pattern as the paper. Context and wrapper transformations move the representation more than
 local edits, and typed substitution moves a different set of features. Layers 4, 6, 8 and 10 give gaps of 0.903,
-0.717, 0.492 and 0.390, with 23 or 24 of 24 prompts in the same direction. With 1,000 generated prompts the paper
-reports gaps of 0.939 to 0.979 for these four layers.
+0.717, 0.492 and 0.390, with 23 or 24 of 24 prompts in the same direction. With 1,000 generated prompts the paper's
+analysis, with the corrected target alignment above, gives gaps of 0.925 to 0.977 for these four layers.
 
 ---
 
